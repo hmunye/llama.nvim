@@ -1,0 +1,1 @@
+-- Files in the `plugin` directory are immediately executed on startup of Neovim

@@ -1,0 +1,7 @@
+==============================================================================
+                                                                    llama.nvim
+
+This plugin provides local AI in your terminal via Ollama. A private experience 
+integrated into your workflow, giving you full control. See examples:
+
+vim:tw=78:ts=8:ft=help:norl:
