@@ -1,0 +1,2 @@
+# llama.nvim
+Neovim + Ollama
