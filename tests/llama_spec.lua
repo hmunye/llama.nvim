@@ -1,1 +1,5 @@
-
+describe("llama.nvim", function()
+    it("is requirable", function()
+        require("llama")
+    end)
+end)
