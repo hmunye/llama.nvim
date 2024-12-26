@@ -1,0 +1,52 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  format:
+    name: Stylua
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: date +%W > weekly_stylua
+
+      - name: Restore Cache
+        id: cache_stylua
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-stylua-${{ hashFiles('weekly_stylua') }}
+
+      - name: Install stylua
+        if: steps.cache_stylua.outputs.cache-hit != 'true'
+        run: cargo install stylua
+
+      - name: Format
+        run: |
+          stylua --version
+          stylua --check lua/ plugin/ --config-path=.stylua.toml
+
+  lint:
+    name: Selene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: date +%W > weekly_selene
+
+      - name: Restore Cache
+        id: cache_selene
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-selene-${{ hashFiles('weekly_selene') }}
+
+      - name: Install selene
+        if: steps.cache_selene.outputs.cache-hit != 'true'
+        run: cargo install selene
+
+      - name: Lint
+        run: |
+          selene --version
+          selene --allow-warnings --config=.selene.toml lua/ plugin/
