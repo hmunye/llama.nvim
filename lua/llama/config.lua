@@ -83,13 +83,13 @@ local function get_default_config()
         prompt = {
             position = "bottom",
             border = "rounded",
-            start_insert_mode = true,
+            start_insert_mode = false,
             highlight_color = "#404040",
         },
         keymaps = {
             LlamaChat = {
                 mode = { "n" },
-                lhs = "<C-c>",
+                lhs = "<C-l>",
             },
             LlamaSubmitPrompt = {
                 mode = { "n", "i" },

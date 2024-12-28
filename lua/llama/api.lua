@@ -1,5 +1,14 @@
 local M = {}
 
+local state = {
+    model_options = {},
+}
+
+---@param model_options ModelConfig
+M.init = function(model_options)
+    state.model_options = model_options
+end
+
 M.fetch_local_models = function()
     local results = vim.system(
         { "curl", "http://localhost:11434/api/tags" },

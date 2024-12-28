@@ -6,42 +6,57 @@
 local Llama = {}
 
 local state = {
-    opts = {},
+    model = "",
     loaded = false,
 }
 
 ---@param opts LlamaConfigPartial
 Llama.setup = function(opts)
-    state.opts = require("llama.config").merge_config(opts)
+    local merged_opts = require("llama.config").merge_config(opts)
 
-    for action, keymap in pairs(state.opts.keymaps) do
-        vim.keymap.set(
-            keymap.mode,
-            keymap.lhs,
-            "<cmd>" .. action .. "<CR>",
-            { noremap = true, silent = true }
-        )
-    end
+    state.model = merged_opts.model
+
+    -- Initial keymap to load plugin/toggle chat window
+    vim.keymap.set(
+        merged_opts.keymaps.LlamaChat.mode,
+        merged_opts.keymaps.LlamaChat.lhs,
+        "<cmd>LlamaChat<CR>",
+        { noremap = true, silent = true }
+    )
 
     vim.api.nvim_create_user_command("LlamaChat", function()
         if not state.loaded then
-            Llama.load()
+            if not Llama.load() then
+                return
+            end
+
+            require("llama.ui").init(
+                state.model,
+                merged_opts.chat,
+                merged_opts.prompt,
+                merged_opts.include_current_buffer,
+                merged_opts.keymaps
+            )
+            require("llama.api").init(merged_opts.model_options)
+            require("llama.ui").toggle_chat_window()
+
+            state.loaded = true
+
+            return
         end
+
+        require("llama.ui").toggle_chat_window()
     end, {})
-
-    vim.api.nvim_create_user_command("LlamaSubmitPrompt", function() end, {})
-
-    vim.api.nvim_create_user_command("LlamaClearChat", function() end, {})
 end
 
 Llama.load = function()
-    if not state.opts.model or state.opts.model == "" then
+    if not state.model or state.model == "" then
         vim.notify(
             "ERROR: missing or invalid 'model' field in plugin setup configuration",
             vim.log.levels.ERROR,
             { title = "llama.nvim" }
         )
-        return
+        return false
     end
 
     local check_status = require("llama.health").check()
@@ -52,20 +67,20 @@ Llama.load = function()
             vim.log.levels.ERROR,
             {}
         )
-        return
+        return false
     end
 
-    local status, data = require("llama.api").fetch_local_models()
+    local status, model_data = require("llama.api").fetch_local_models()
 
     if not status then
-        vim.notify(data, vim.log.levels.ERROR, {})
-        return
+        vim.notify(model_data, vim.log.levels.ERROR, {})
+        return false
     end
 
     local model_found = false
 
-    for _, value in pairs(data.models) do
-        if state.opts.model == value.model then
+    for _, value in pairs(model_data.models) do
+        if state.model == value.model then
             model_found = true
             break
         end
@@ -74,16 +89,17 @@ Llama.load = function()
     if not model_found then
         vim.notify(
             "ERROR: failed to find model in list of local available models: provided "
-            .. state.opts.model,
+            .. state.model,
             vim.log.levels.ERROR,
             {}
         )
-        return
+        return false
     end
 
-    print("loaded")
+    return true
 end
 
+-- TODO: Remove
 vim.keymap.set("n", "<leader>r", function()
     require("lazy.core.loader").reload("llama")
 end)
