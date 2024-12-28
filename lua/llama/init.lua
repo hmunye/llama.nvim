@@ -89,7 +89,7 @@ Llama.load = function()
     if not model_found then
         vim.notify(
             "ERROR: failed to find model in list of local available models: provided "
-            .. state.model,
+                .. state.model,
             vim.log.levels.ERROR,
             {}
         )
