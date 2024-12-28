@@ -3,23 +3,48 @@
     Neovim but are available to the user to `require`
 --]]
 
-local Health = require("llama.health")
-local API = require("llama.api")
-
 local Llama = {}
 
+local state = {
+    opts = {},
+    loaded = false,
+}
+
 ---@param opts LlamaConfigPartial
-function Llama.setup(opts)
-    if not opts.model then
+Llama.setup = function(opts)
+    state.opts = require("llama.config").merge_config(opts)
+
+    for action, keymap in pairs(state.opts.keymaps) do
+        vim.keymap.set(
+            keymap.mode,
+            keymap.lhs,
+            "<cmd>" .. action .. "<CR>",
+            { noremap = true, silent = true }
+        )
+    end
+
+    vim.api.nvim_create_user_command("LlamaChat", function()
+        if not state.loaded then
+            Llama.load()
+        end
+    end, {})
+
+    vim.api.nvim_create_user_command("LlamaSubmitPrompt", function() end, {})
+
+    vim.api.nvim_create_user_command("LlamaClearChat", function() end, {})
+end
+
+Llama.load = function()
+    if not state.opts.model or state.opts.model == "" then
         vim.notify(
-            "ERROR: missing 'model' field in plugin setup configuration",
+            "ERROR: missing or invalid 'model' field in plugin setup configuration",
             vim.log.levels.ERROR,
-            {}
+            { title = "llama.nvim" }
         )
         return
     end
 
-    local check_status = Health.check()
+    local check_status = require("llama.health").check()
 
     if not check_status then
         vim.notify(
@@ -30,7 +55,7 @@ function Llama.setup(opts)
         return
     end
 
-    local status, data = API.fetch_local_models()
+    local status, data = require("llama.api").fetch_local_models()
 
     if not status then
         vim.notify(data, vim.log.levels.ERROR, {})
@@ -40,7 +65,7 @@ function Llama.setup(opts)
     local model_found = false
 
     for _, value in pairs(data.models) do
-        if opts.model == value.model then
+        if state.opts.model == value.model then
             model_found = true
             break
         end
@@ -49,12 +74,14 @@ function Llama.setup(opts)
     if not model_found then
         vim.notify(
             "ERROR: failed to find model in list of local available models: provided "
-            .. opts.model,
+            .. state.opts.model,
             vim.log.levels.ERROR,
             {}
         )
         return
     end
+
+    print("loaded")
 end
 
 vim.keymap.set("n", "<leader>r", function()

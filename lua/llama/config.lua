@@ -41,9 +41,9 @@ local M = {}
 --- @field highlight_color string
 
 --- @class KeymapConfig
---- @field toggle_chat Keymap
---- @field submit_prompt Keymap
---- @field clear_chat Keymap
+--- @field LlamaChat Keymap
+--- @field LlamaSubmitPrompt Keymap
+--- @field LlamaClearChat Keymap
 
 --- @class Keymap
 --- @field mode string[]
@@ -87,15 +87,15 @@ local function get_default_config()
             highlight_color = "#404040",
         },
         keymaps = {
-            toggle_chat = {
+            LlamaChat = {
                 mode = { "n" },
                 lhs = "<C-c>",
             },
-            submit_prompt = {
+            LlamaSubmitPrompt = {
                 mode = { "n", "i" },
                 lhs = "<CR>",
             },
-            clear_chat = {
+            LlamaClearChat = {
                 mode = { "n" },
                 lhs = "<leader>c",
             },
@@ -144,9 +144,9 @@ end
 --- @field highlight_color string?
 
 --- @class KeymapConfigPartial
---- @field toggle_chat Keymap?
---- @field submit_prompt Keymap?
---- @field clear_chat Keymap?
+--- @field LlamaChat Keymap?
+--- @field LlamaSubmitPrompt Keymap?
+--- @field LlamaClearChat Keymap?
 
 --- @class KeymapPartial
 --- @field mode string[]?
@@ -157,7 +157,7 @@ end
 function M.merge_config(partial_opts)
     local default_config = get_default_config()
 
-    return vim.tbl_extend("force", {}, default_config, partial_config or {})
+    return vim.tbl_extend("force", {}, default_config, partial_opts or {})
 end
 
 return M
