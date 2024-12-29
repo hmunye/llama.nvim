@@ -17,7 +17,7 @@
 **llama.nvim** is a Neovim plugin that provides local AI in your terminal via Ollama. A private experience integrated into your workflow, giving you full control.
 
 ## Features
-- [ ] Option to include or exclude the current buffer content as context for model
+- [x] Option to include or exclude the current buffer content as context for model
 - [ ] Enable switching between locally available models
 - [x] Configuration of model options (e.g., temperature, system prompt, seed)
 - [x] Enable/disable streaming of generated responses into the chat buffer

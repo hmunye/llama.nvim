@@ -4,6 +4,10 @@ local Utils = require("llama.utils")
 local M = {}
 
 local state = {
+    -- current buffer with code
+    current_buf = -1,
+    -- context window for model
+    ctx_win = -1,
     model = "",
     include_current_buffer = false,
     chat = {
@@ -40,23 +44,33 @@ local state = {
     },
 }
 
+-- `commands` to enter in prompt
+local commands = {
+    clear_chat = "/clear",
+    include_buffer = "/buf",
+    disclude_buffer = "/no-buf",
+}
+
 --- @param model string -- initial model provided
 --- @param chat_opts ChatOpts -- initial chat window opts
 --- @param prompt_opts PromptOpts -- initial prompt window opts
 --- @param include_current_buffer boolean
 --- @param keymaps KeymapOpts -- remaining keymaps that need to be buffer-scoped
+--- @param ctx_win integer -- context window for model
 M.init = function(
     model,
     chat_opts,
     prompt_opts,
     include_current_buffer,
-    keymaps
+    keymaps,
+    ctx_win
 )
     state.model = model
     state.include_current_buffer = include_current_buffer
     state.chat.opts = chat_opts
     state.prompt.opts = prompt_opts
     state.keymaps = keymaps
+    state.ctx_win = ctx_win
 end
 
 M.start_spinner = function()
@@ -161,6 +175,9 @@ M.toggle_chat_window = function()
         M.stop_spinner()
         return
     end
+
+    -- store the current buffer for future use
+    state.current_buf = vim.api.nvim_win_get_buf(0)
 
     state.chat.width = math.floor(
         vim.api.nvim_win_get_width(0) * (state.chat.opts.width / 100)
@@ -362,8 +379,6 @@ M.append_user_prompt = function(prompt)
 
         last_row = last_row + 1
     end
-
-    M.append_model_response(prompt)
 end
 
 ---@param prompt string
@@ -465,6 +480,26 @@ M.append_model_response = function(prompt)
     end)
 end
 
+---@param mes string -- command message to display
+M.append_command_message = function(mes)
+    local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+
+    -- add padding between each message
+    local padding_lines = 4
+
+    for i = 1, padding_lines do
+        Utils.set_buf_lines(
+            state.chat.bufnr,
+            #lines + 1 + i - 1,
+            #lines + 1 + i,
+            false,
+            { "" }
+        )
+    end
+
+    Utils.set_buf_lines(state.chat.bufnr, #lines - 1, #lines, false, { mes })
+end
+
 M.submit_prompt = function()
     local input = M.get_input()
 
@@ -472,7 +507,70 @@ M.submit_prompt = function()
         return
     end
 
+    if state.include_current_buffer then
+        -- get the stats of current buffer
+        local ok, stats = pcall(
+            vim.loop.fs_stat,
+            vim.api.nvim_buf_get_name(state.current_buf)
+        )
+
+        -- checked ollama server messages for truncated prompts that were larger than `num_ctx`
+        -- ex. "msg="truncating input prompt" limit=4096 prompt=4881 keep=4 new=4096"
+        --
+        -- appx tokens in file = math.floor(file size in bytes * 0.286).
+        if ok and stats and math.floor(stats.size * 0.286) > state.ctx_win then
+            print("approximate tokens: " .. math.floor(stats.size * 0.286))
+
+            vim.notify(
+                "file larger than model's context window. current buffer was not included for performance",
+                vim.log.levels.WARN,
+                { title = "llama.nvim" }
+            )
+
+            -- use original prompt
+            M.append_user_prompt(input)
+            M.append_model_response(input)
+
+            if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
+                -- Clear the prompt after submitting
+                Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+            end
+
+            return
+        else
+            -- save original prompt
+            local user_prompt = input
+
+            input = input .. "\n[Context]: "
+
+            -- get lines from main buffer
+            local lines =
+                vim.api.nvim_buf_get_lines(state.current_buf, 0, -1, false)
+
+            for _, line in ipairs(lines) do
+                input = input .. line
+            end
+
+            user_prompt = user_prompt .. "\n - buffer included"
+
+            -- use original prompt with indicator for which buffer was included
+            M.append_user_prompt(user_prompt)
+
+            -- use modified prompt
+            M.append_model_response(input)
+
+            if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
+                -- Clear the prompt after submitting
+                Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+            end
+
+            return
+        end
+    end
+
+    -- use original prompt
     M.append_user_prompt(input)
+    M.append_model_response(input)
 
     if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
         -- Clear the prompt after submitting
@@ -480,8 +578,10 @@ M.submit_prompt = function()
     end
 end
 
+M.process_command = function() end
+
 M.clear_chat_window = function()
-    print("cleared")
+    Utils.set_buf_lines(state.chat.bufnr, 0, -1, false, {})
 end
 
 M.setup_keymaps = function()
@@ -491,14 +591,6 @@ M.setup_keymaps = function()
         state.keymaps.LlamaSubmitPrompt.lhs,
         "<cmd>LlamaSubmitPrompt<CR>",
         { buffer = state.prompt.bufnr, noremap = true, silent = true }
-    )
-
-    -- Scoped only to chat buffer
-    vim.keymap.set(
-        state.keymaps.LlamaClearChat.mode,
-        state.keymaps.LlamaClearChat.lhs,
-        "<cmd>LlamaClearChat<CR>",
-        { buffer = state.chat.bufnr, noremap = true, silent = true }
     )
 end
 
@@ -512,16 +604,8 @@ M.setup_buf_commands = function()
         end,
         {}
     )
-
-    -- Scoped only to chat buffer
-    vim.api.nvim_buf_create_user_command(
-        state.chat.bufnr,
-        "LlamaClearChat",
-        function()
-            require("llama.ui").clear_chat_window()
-        end,
-        {}
-    )
 end
 
 return M
+
+-- hdabhjdbashjdsahkdbsjahbdhjasbfkbsjdahfkvadjgsvfgkjdsvfjsvadjgkfvdsafghvajfgvwegjfjvaegwkjfvskdjgfvgb

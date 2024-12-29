@@ -36,7 +36,8 @@ Llama.setup = function(opts)
                 merged_opts.chat,
                 merged_opts.prompt,
                 merged_opts.include_current_buffer,
-                merged_opts.keymaps
+                merged_opts.keymaps,
+                merged_opts.model_options.num_ctx
             )
             require("llama.ui").toggle_chat_window()
 

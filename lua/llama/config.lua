@@ -20,7 +20,6 @@ local M = {}
 --- @field temperature number
 --- @field seed number
 --- @field stop string[]|nil
---- @field tfs_z number
 --- @field num_predict number
 --- @field top_k number
 --- @field top_p number
@@ -43,7 +42,6 @@ local M = {}
 --- @class KeymapOpts
 --- @field LlamaChat Keymap
 --- @field LlamaSubmitPrompt Keymap
---- @field LlamaClearChat Keymap
 
 --- @class Keymap
 --- @field mode string[]
@@ -63,7 +61,6 @@ local function get_default_config()
             temperature = 0.8,
             seed = 0,
             stop = { "" },
-            tfs_z = 1,
             num_predict = -1,
             top_k = 40,
             top_p = 0.9,
@@ -95,10 +92,6 @@ local function get_default_config()
                 mode = { "n", "i" },
                 lhs = "<CR>",
             },
-            LlamaClearChat = {
-                mode = { "n" },
-                lhs = "<leader>c",
-            },
         },
     }
 end
@@ -123,7 +116,6 @@ end
 --- @field temperature number?
 --- @field seed number?
 --- @field stop string[]|nil
---- @field tfs_z number?
 --- @field num_predict number?
 --- @field top_k number?
 --- @field top_p number?
@@ -146,7 +138,6 @@ end
 --- @class KeymapOptsPartial
 --- @field LlamaChat Keymap?
 --- @field LlamaSubmitPrompt Keymap?
---- @field LlamaClearChat Keymap?
 
 --- @class KeymapPartial
 --- @field mode string[]?
