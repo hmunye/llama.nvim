@@ -272,6 +272,101 @@ M.toggle_prompt_window = function(chat_col)
 end
 
 ---@param prompt string
+M.append_user_prompt = function(prompt)
+    local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+
+    local wrap_width = math.floor(state.chat.width * 0.4)
+
+    local wrapped_prompt = {}
+
+    -- check if the prompt contains any newline characters
+    if prompt:find("\n") then
+        for line in prompt:gmatch("([^\n]+)") do
+            local wrapped_line = Utils.wrap_text(line, wrap_width)
+
+            for _, wrapped_subline in ipairs(wrapped_line) do
+                table.insert(wrapped_prompt, wrapped_subline)
+            end
+        end
+    else
+        -- manually split it into multiple chunks if there are now newlines
+        local line_start = 1
+        while line_start <= #prompt do
+            local line_end = math.min(line_start + wrap_width - 1, #prompt)
+
+            local wrapped_line = prompt:sub(line_start, line_end)
+
+            table.insert(wrapped_prompt, wrapped_line)
+
+            line_start = line_end + 1
+        end
+    end
+
+    local bg_color = state.prompt.opts.highlight_color
+
+    -- Define highlight group for user prompt
+    vim.cmd(
+        string.format("highlight PromptHighlight guibg=%s guifg=NONE", bg_color)
+    )
+
+    -- add padding between each prompt
+    local padding_lines = 2
+
+    for i = 1, padding_lines do
+        Utils.set_buf_lines(
+            state.chat.bufnr,
+            #lines + 1 + i - 1,
+            #lines + 1 + i,
+            false,
+            { "" }
+        )
+    end
+
+    local last_row = #lines + 1
+
+    for _, line in ipairs(wrapped_prompt) do
+        -- padding needed to right-align the text
+        local padding_needed = math.max(state.chat.width - #line - 4, 0)
+
+        local full_line = string.rep(" ", padding_needed)
+            .. line
+            .. string.rep(" ", 2)
+
+        Utils.set_buf_lines(
+            state.chat.bufnr,
+            last_row,
+            last_row + 1,
+            false,
+            { full_line }
+        )
+
+        if #line < wrap_width and #wrapped_prompt ~= 1 then
+            vim.api.nvim_buf_add_highlight(
+                state.chat.bufnr,
+                -1,
+                "PromptHighlight",
+                last_row,
+                state.chat.width - wrap_width - 6,
+                padding_needed + #line + 2
+            )
+        else
+            vim.api.nvim_buf_add_highlight(
+                state.chat.bufnr,
+                -1,
+                "PromptHighlight",
+                last_row,
+                padding_needed - 2,
+                padding_needed + #line + 2
+            )
+        end
+
+        last_row = last_row + 1
+    end
+
+    M.append_model_response(prompt)
+end
+
+---@param prompt string
 M.append_model_response = function(prompt)
     state.prompt.is_processing = true
     M.start_spinner()
@@ -279,7 +374,7 @@ M.append_model_response = function(prompt)
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
     -- add padding between each response
-    local padding_lines = 3
+    local padding_lines = 4
 
     for i = 1, padding_lines do
         Utils.set_buf_lines(
@@ -377,7 +472,7 @@ M.submit_prompt = function()
         return
     end
 
-    M.append_model_response(input)
+    M.append_user_prompt(input)
 
     if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
         -- Clear the prompt after submitting

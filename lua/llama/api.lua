@@ -142,7 +142,7 @@ M.generate_chat_completion = function(model, prompt, callback)
                     -- defers the callback incrementally based on the amount of responses
                     vim.defer_fn(function()
                         callback(true, decoded_part.message.content)
-                    end, 50 * i)
+                    end, 40 * i)
                 end
             end)
         end

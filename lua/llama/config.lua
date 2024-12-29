@@ -84,7 +84,7 @@ local function get_default_config()
             position = "bottom",
             border = "rounded",
             start_insert_mode = true,
-            highlight_color = "#E0E0E0",
+            highlight_color = "#303030",
         },
         keymaps = {
             LlamaChat = {
