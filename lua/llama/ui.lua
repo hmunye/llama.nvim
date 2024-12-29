@@ -19,6 +19,25 @@ local state = {
         winid = -1,
     },
     keymaps = {},
+    -- https://github.com/jellydn/spinner.nvim
+    spinner = {
+        index = 1,
+        timer = nil,
+        bufnr = -1,
+        winid = -1,
+        frames = {
+            "⠋",
+            "⠙",
+            "⠹",
+            "⠸",
+            "⠼",
+            "⠴",
+            "⠦",
+            "⠧",
+            "⠇",
+            "⠏",
+        },
+    },
 }
 
 --- @param model string -- initial model provided
@@ -40,6 +59,89 @@ M.init = function(
     state.keymaps = keymaps
 end
 
+M.start_spinner = function()
+    if state.spinner.timer then
+        return
+    end
+
+    local text_row = math.floor(state.chat.height / 2)
+    local text_col = math.floor((state.chat.width - 1) / 2)
+
+    local opts = {
+        -- Relative to chat window
+        relative = "win",
+        win = state.chat.winid,
+        width = 1,
+        height = 1,
+        col = text_col,
+        row = text_row,
+        style = "minimal",
+    }
+
+    -- Define highlight group for spinner
+    vim.cmd(
+        string.format(
+            "highlight SpinnerHighlight guibg=NONE guifg=%s",
+            state.chat.opts.spinner_color
+        )
+    )
+
+    if not vim.api.nvim_buf_is_valid(state.spinner.bufnr) then
+        state.spinner.bufnr = vim.api.nvim_create_buf(false, true)
+    end
+
+    if not vim.api.nvim_win_is_valid(state.spinner.winid) then
+        state.spinner.winid =
+            vim.api.nvim_open_win(state.spinner.bufnr, false, opts)
+    end
+
+    -- Start a timer to cycle through the spinner frames
+    state.spinner.timer = vim.loop.new_timer()
+    state.spinner.timer:start(
+        0,
+        100,
+        vim.schedule_wrap(function()
+            if vim.api.nvim_buf_is_valid(state.spinner.bufnr) then
+                Utils.set_buf_lines(
+                    state.spinner.bufnr,
+                    0,
+                    -1,
+                    false,
+                    { state.spinner.frames[state.spinner.index] }
+                )
+
+                vim.api.nvim_buf_add_highlight(
+                    state.spinner.bufnr,
+                    -1,
+                    "SpinnerHighlight",
+                    0,
+                    0,
+                    -1
+                )
+            end
+
+            state.spinner.index = (state.spinner.index % #state.spinner.frames)
+                + 1
+        end)
+    )
+end
+
+M.stop_spinner = function()
+    if state.spinner.timer then
+        state.spinner.timer:stop()
+        state.spinner.timer:close()
+        state.spinner.timer = nil
+
+        if state.spinner.winid then
+            vim.api.nvim_win_close(state.spinner.winid, true)
+        end
+
+        if state.spinner.bufnr then
+            vim.api.nvim_buf_delete(state.spinner.bufnr, { force = true })
+        end
+    end
+end
+
 --- get input value from prompt buffer
 ---@return string -- all lines in the buffer as a single string
 M.get_input = function()
@@ -56,6 +158,7 @@ M.toggle_chat_window = function()
         vim.api.nvim_win_hide(state.chat.winid)
         vim.api.nvim_win_hide(state.prompt.winid)
 
+        M.stop_spinner()
         return
     end
 
@@ -97,6 +200,11 @@ M.toggle_chat_window = function()
         title_pos = state.chat.opts.title_position,
     })
 
+    -- resume the spinner if chat window is previously closed and model is still processing
+    if not state.spinner.timer and state.prompt.is_processing then
+        M.start_spinner()
+    end
+
     vim.api.nvim_set_option_value("wrap", true, { win = state.chat.winid })
 
     vim.api.nvim_set_option_value(
@@ -111,7 +219,7 @@ M.toggle_chat_window = function()
         { buf = state.chat.bufnr }
     )
 
-    M.create_prompt_window(col)
+    M.toggle_prompt_window(col)
 
     if state.keymaps then
         M.setup_keymaps()
@@ -122,7 +230,7 @@ M.toggle_chat_window = function()
 end
 
 ---@param chat_col number
-M.create_prompt_window = function(chat_col)
+M.toggle_prompt_window = function(chat_col)
     if not vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
         -- BUG: unexpected behaviors when opening `Oil` file explorer within
         -- prompt buffer and toggling chat window. can be useful though
@@ -165,6 +273,24 @@ end
 
 ---@param prompt string
 M.append_model_response = function(prompt)
+    state.prompt.is_processing = true
+    M.start_spinner()
+
+    local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+
+    -- add padding between each response
+    local padding_lines = 3
+
+    for i = 1, padding_lines do
+        Utils.set_buf_lines(
+            state.chat.bufnr,
+            #lines + 1 + i - 1,
+            #lines + 1 + i,
+            false,
+            { "" }
+        )
+    end
+
     API.generate_chat_completion(state.model, prompt, function(status, response)
         if not status then
             vim.notify(response, vim.log.levels.ERROR, { title = "llama.nvim" })
@@ -180,8 +306,7 @@ M.append_model_response = function(prompt)
         if string.find(response, "\n") then
             local response_lines = vim.split(response, "\n")
 
-            local lines =
-                vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+            lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
             -- if no lines exist in the buffer, add the response lines directly
             if #lines == 0 then
@@ -222,8 +347,7 @@ M.append_model_response = function(prompt)
             end
         else
             -- no newlines present in response
-            local lines =
-                vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+            lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
             if #lines == 0 then
                 Utils.set_buf_lines(state.chat.bufnr, 0, 0, false, { response })
@@ -240,6 +364,9 @@ M.append_model_response = function(prompt)
                 )
             end
         end
+
+        state.prompt.is_processing = false
+        M.stop_spinner()
     end)
 end
 
