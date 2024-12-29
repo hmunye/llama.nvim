@@ -46,9 +46,9 @@ local state = {
 
 -- `commands` to enter in prompt
 local commands = {
-    clear_chat = "/clear",
+    clear_chat = "/c",
     include_buffer = "/buf",
-    disclude_buffer = "/no-buf",
+    disclude_buffer = "/no_buf",
 }
 
 --- @param model string -- initial model provided
@@ -484,20 +484,51 @@ end
 M.append_command_message = function(mes)
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
-    -- add padding between each message
-    local padding_lines = 4
-
-    for i = 1, padding_lines do
+    if #lines <= 1 then
+        -- if there is 1 or fewer lines, directly append the message
         Utils.set_buf_lines(
             state.chat.bufnr,
-            #lines + 1 + i - 1,
-            #lines + 1 + i,
+            #lines,
+            #lines + 1,
             false,
-            { "" }
+            { mes }
+        )
+    else
+        local padding_lines = 4
+
+        for i = 1, padding_lines do
+            Utils.set_buf_lines(
+                state.chat.bufnr,
+                #lines + i,
+                #lines + i + 1,
+                false,
+                { "" }
+            )
+        end
+
+        Utils.set_buf_lines(
+            state.chat.bufnr,
+            #lines + padding_lines,
+            #lines + padding_lines + 1,
+            false,
+            { mes }
         )
     end
+end
 
-    Utils.set_buf_lines(state.chat.bufnr, #lines - 1, #lines, false, { mes })
+---@param command string
+M.process_command = function(command)
+    if command == "/c" then
+        M.clear_chat_window()
+    elseif command == "/buf" then
+        state.include_current_buffer = true
+
+        M.append_command_message("[LLAMA] include current buffer: enabled")
+    else -- "/no-buf"
+        state.include_current_buffer = false
+
+        M.append_command_message("[LLAMA] include current buffer: disabled")
+    end
 end
 
 M.submit_prompt = function()
@@ -505,6 +536,20 @@ M.submit_prompt = function()
 
     if input == "" then
         return
+    end
+
+    -- check for any commands
+    for _, value in pairs(commands) do
+        if string.match(input, value) then
+            M.process_command(value)
+
+            if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
+                -- Clear the prompt after submitting
+                Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+            end
+
+            return
+        end
     end
 
     if state.include_current_buffer then
@@ -578,8 +623,6 @@ M.submit_prompt = function()
     end
 end
 
-M.process_command = function() end
-
 M.clear_chat_window = function()
     Utils.set_buf_lines(state.chat.bufnr, 0, -1, false, {})
 end
@@ -607,5 +650,3 @@ M.setup_buf_commands = function()
 end
 
 return M
-
--- hdabhjdbashjdsahkdbsjahbdhjasbfkbsjdahfkvadjgsvfgkjdsvfjsvadjgkfvdsafghvajfgvwegjfjvaegwkjfvskdjgfvgb
