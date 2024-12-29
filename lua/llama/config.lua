@@ -1,14 +1,16 @@
 local M = {}
 
---- @class LlamaConfig
+--- @class LlamaOpts
 --- @field model string
---- @field model_options ModelConfig
+--- @field model_options ModelOpts
+--- @field system_message string
+--- @field stream boolean
 --- @field include_current_buffer boolean
---- @field chat ChatConfig
---- @field prompt PromptConfig
---- @field keymaps KeymapConfig
+--- @field chat ChatOpts
+--- @field prompt PromptOpts
+--- @field keymaps KeymapOpts
 
---- @class ModelConfig
+--- @class ModelOpts
 --- @field mirostat number
 --- @field mirostat_eta number
 --- @field mirostat_tau number
@@ -17,16 +19,14 @@ local M = {}
 --- @field repeat_penalty number
 --- @field temperature number
 --- @field seed number
---- @field stop string
+--- @field stop string[]|nil
 --- @field tfs_z number
 --- @field num_predict number
 --- @field top_k number
 --- @field top_p number
 --- @field min_p number
---- @field system_message string
---- @field stream boolean
 
---- @class ChatConfig
+--- @class ChatOpts
 --- @field position string
 --- @field width number
 --- @field title string
@@ -34,13 +34,13 @@ local M = {}
 --- @field border string|string[]
 --- @field spinner_color string
 
---- @class PromptConfig
+--- @class PromptOpts
 --- @field position string
 --- @field border string|string[]
 --- @field start_insert_mode boolean
 --- @field highlight_color string
 
---- @class KeymapConfig
+--- @class KeymapOpts
 --- @field LlamaChat Keymap
 --- @field LlamaSubmitPrompt Keymap
 --- @field LlamaClearChat Keymap
@@ -49,7 +49,7 @@ local M = {}
 --- @field mode string[]
 --- @field lhs string
 
---- @return LlamaConfig
+--- @return LlamaOpts
 local function get_default_config()
     return {
         model = "",
@@ -62,7 +62,7 @@ local function get_default_config()
             repeat_penalty = 1.1,
             temperature = 0.8,
             seed = 0,
-            stop = "",
+            stop = { "" },
             tfs_z = 1,
             num_predict = -1,
             top_k = 40,
@@ -83,8 +83,8 @@ local function get_default_config()
         prompt = {
             position = "bottom",
             border = "rounded",
-            start_insert_mode = false,
-            highlight_color = "#404040",
+            start_insert_mode = true,
+            highlight_color = "#E0E0E0",
         },
         keymaps = {
             LlamaChat = {
@@ -103,15 +103,17 @@ local function get_default_config()
     }
 end
 
---- @class LlamaConfigPartial
+--- @class LlamaOptsPartial
 --- @field model string
---- @field model_options ModelConfig?
+--- @field model_options ModelOpts?
+--- @field system_message string?
+--- @field stream boolean?
 --- @field include_current_buffer boolean?
---- @field chat ChatConfig?
---- @field prompt PromptConfig?
---- @field keymaps KeymapConfig?
+--- @field chat ChatOpts?
+--- @field prompt PromptOpts?
+--- @field keymaps KeymapOpts?
 
---- @class ModelConfigPartial
+--- @class ModelOptsPartial
 --- @field mirostat number?
 --- @field mirostat_eta number?
 --- @field mirostat_tau number?
@@ -120,16 +122,14 @@ end
 --- @field repeat_penalty number?
 --- @field temperature number?
 --- @field seed number?
---- @field stop string?
+--- @field stop string[]|nil
 --- @field tfs_z number?
 --- @field num_predict number?
 --- @field top_k number?
 --- @field top_p number?
 --- @field min_p number?
---- @field system_message string?
---- @field stream boolean?
 
---- @class ChatConfigPartial
+--- @class ChatOptsPartial
 --- @field position string?
 --- @field width number?
 --- @field title string?
@@ -137,13 +137,13 @@ end
 --- @field border string|string[]?
 --- @field spinner_color string?
 
---- @class PromptConfigPartial
+--- @class PromptOptsPartial
 --- @field position string?
 --- @field border string|string[]?
 --- @field start_insert_mode boolean?
 --- @field highlight_color string?
 
---- @class KeymapConfigPartial
+--- @class KeymapOptsPartial
 --- @field LlamaChat Keymap?
 --- @field LlamaSubmitPrompt Keymap?
 --- @field LlamaClearChat Keymap?
@@ -152,8 +152,11 @@ end
 --- @field mode string[]?
 --- @field lhs string?
 
---- @param partial_opts LlamaConfigPartial
---- @return LlamaConfig
+--- merge users opts with the default config.
+--- prefer a user's option when conflict occurs
+---
+--- @param partial_opts LlamaOptsPartial
+--- @return LlamaOpts -- non-nil configuration
 function M.merge_config(partial_opts)
     local default_config = get_default_config()
 

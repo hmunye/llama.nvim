@@ -1,5 +1,9 @@
 local M = {}
 
+--- healthcheck to verify that `curl` and `ollama` are installed
+--- and have `valid` versions
+---
+---@return boolean -- true if all checks pass, false otherwise
 M.check = function()
     vim.health.start("llama.nvim report")
 
@@ -32,7 +36,7 @@ M.check = function()
         return false
     end
 
-    -- Require curl 8.x.x or higher
+    -- require curl 8.x.x or higher
     if version.major < 8 then
         vim.health.error(
             "curl must be version 8.x.x or higher. found version "
@@ -51,7 +55,7 @@ M.check = function()
         return false
     end
 
-    -- Don't need to split ollama version stdout
+    -- don't need to split ollama version stdout
     version = vim.version.parse(results.stdout or "")
 
     if not version then
@@ -59,7 +63,7 @@ M.check = function()
         return false
     end
 
-    -- Require ollama 0.5.x or higher
+    -- require ollama 0.5.x or higher
     if version.minor < 5 then
         vim.health.error(
             "ollama must be version 0.5.x or higher. found version "

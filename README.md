@@ -19,6 +19,5 @@
 ## Features
 - [ ] Option to include or exclude the current buffer content as context for model
 - [ ] Enable switching between locally available models
-- [ ] Configuration of model options (e.g., temperature, system prompt, seed)
-- [ ] Simple markdown rendering support for prompts/responses
-- [ ] Enable/disable streaming of generated responses into the chat buffer
+- [x] Configuration of model options (e.g., temperature, system prompt, seed)
+- [x] Enable/disable streaming of generated responses into the chat buffer
