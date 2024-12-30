@@ -18,6 +18,11 @@ M.init = function(system_message, stream, model_options)
     state.opts.model_options = model_options
 end
 
+M.clear_chat_history = function()
+    state.messages = {}
+    state.opts.system_message = ""
+end
+
 ---@return boolean -- true if the request was successful, false otherwise
 ---@return string|table -- error message if failed, or a table of models if successful
 M.fetch_local_models = function()
@@ -56,6 +61,7 @@ end
 ---@param prompt string -- user prompt
 ---@param callback function -- callback returns true and the next token/response or false and error message
 M.generate_chat_completion = function(model, prompt, callback)
+    print(model)
     if state.opts.system_message then
         local system_message = {
             role = "system",

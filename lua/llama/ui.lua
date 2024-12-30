@@ -49,6 +49,8 @@ local commands = {
     clear_chat = "/c",
     include_buffer = "/buf",
     disclude_buffer = "/no_buf",
+    list_models = "/l",
+    switch_model = "/switch",
 }
 
 --- @param model string -- initial model provided
@@ -524,10 +526,66 @@ M.process_command = function(command)
         state.include_current_buffer = true
 
         M.append_command_message("[LLAMA] include current buffer: enabled")
-    else -- "/no-buf"
+    elseif command == "/no_buf" then
         state.include_current_buffer = false
 
         M.append_command_message("[LLAMA] include current buffer: disabled")
+    elseif command == "/l" then
+        local status, model_data = API.fetch_local_models()
+
+        if not status then
+            -- should be a string since an error occurred, using tostring to hide warning
+            vim.notify(tostring(model_data), vim.log.levels.ERROR, {})
+            return
+        end
+
+        local available_models = {}
+
+        for _, value in pairs(model_data.models) do
+            table.insert(available_models, "`" .. value.model .. "`")
+        end
+
+        M.append_command_message(
+            "[LLAMA] local models: " .. table.concat(available_models, ", ")
+        )
+    elseif command == "/switch" then
+        local status, model_data = API.fetch_local_models()
+
+        if not status then
+            -- should be a string since an error occurred, using tostring to hide warning
+            vim.notify(tostring(model_data), vim.log.levels.ERROR, {})
+            return
+        end
+
+        local available_models = {}
+
+        for idx, value in pairs(model_data.models) do
+            table.insert(available_models, idx .. ". " .. value.model)
+        end
+
+        local model_choice = vim.fn.inputlist(available_models)
+
+        if model_choice and model_choice <= #available_models then
+            local model_name = string.sub(available_models[model_choice], 4)
+
+            state.model = model_name
+
+            -- update prompt window title
+            vim.api.nvim_win_set_config(
+                state.prompt.winid,
+                { title = model_name }
+            )
+
+            -- reset
+            M.clear_chat_window()
+            API.clear_chat_history()
+
+            M.append_command_message(
+                "[LLAMA] switched model to `" .. model_name .. "`"
+            )
+        else
+            M.append_command_message("[LLAMA] model switch canceled")
+        end
     end
 end
 
@@ -540,7 +598,7 @@ M.submit_prompt = function()
 
     -- check for any commands
     for _, value in pairs(commands) do
-        if string.match(input, value) then
+        if input == value then
             M.process_command(value)
 
             if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
