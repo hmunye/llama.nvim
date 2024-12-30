@@ -217,24 +217,19 @@ specifically to the prompt buffer.
 
 Within the prompt buffer, the following commands can be submitted:
 
-- **`clear_chat`**  
-  **Command**: `/c`  
+  - **Command**: `/c`  
   **Action**: Clears the chat buffer
 
-- **`include_buffer`**  
-  **Command**: `/buf`  
+  - **Command**: `/buf`  
   **Action**: Sets the `include_current_buffer` option to true
 
-- **`no_current_buffer`**  
-  **Command**: `/no_buf`  
+  - **Command**: `/no_buf`  
   **Action**: Sets the `include_current_buffer` option to false
 
-- **`list_models`**  
-  **Command**: `/l`  
+  - **Command**: `/l`  
   **Action**: Lists the locally available models on the host system
 
-- **`switch_model`**  
-  **Command**: `/switch`  
+  - **Command**: `/switch`  
   **Action**: Provides a list of available to switch to, resetting the chat buffer and chat history
 
-> Note: These commands should be entered just like regular prompts
+> Note: These commands should be entered just as regular prompts are
