@@ -334,50 +334,28 @@ M.append_user_prompt = function(prompt)
     for i = 1, padding_lines do
         Utils.set_buf_lines(
             state.chat.bufnr,
-            #lines + 1 + i - 1,
-            #lines + 1 + i,
+            #lines + i,
+            #lines + i,
             false,
             { "" }
         )
     end
 
-    local last_row = #lines + 1
+    local last_row = #lines + padding_lines
 
     for _, line in ipairs(wrapped_prompt) do
-        -- padding needed to right-align the text
-        local padding_needed = math.max(state.chat.width - #line - 4, 0)
+        Utils.set_buf_lines(state.chat.bufnr, last_row, last_row + 1, false, {
+            " " .. line .. " " .. string.rep(" ", wrap_width - #line),
+        })
 
-        local full_line = string.rep(" ", padding_needed)
-            .. line
-            .. string.rep(" ", 2)
-
-        Utils.set_buf_lines(
+        vim.api.nvim_buf_add_highlight(
             state.chat.bufnr,
+            -1,
+            "PromptHighlight",
             last_row,
-            last_row + 1,
-            false,
-            { full_line }
+            0,
+            state.chat.width
         )
-
-        if #line < wrap_width and #wrapped_prompt ~= 1 then
-            vim.api.nvim_buf_add_highlight(
-                state.chat.bufnr,
-                -1,
-                "PromptHighlight",
-                last_row,
-                state.chat.width - wrap_width - 6,
-                padding_needed + #line + 2
-            )
-        else
-            vim.api.nvim_buf_add_highlight(
-                state.chat.bufnr,
-                -1,
-                "PromptHighlight",
-                last_row,
-                padding_needed - 2,
-                padding_needed + #line + 2
-            )
-        end
 
         last_row = last_row + 1
     end
@@ -654,7 +632,7 @@ M.submit_prompt = function()
                 input = input .. line
             end
 
-            user_prompt = user_prompt .. "\n - buffer included"
+            user_prompt = user_prompt .. "\n [BUFFER INCLUDED]"
 
             -- use original prompt with indicator for which buffer was included
             M.append_user_prompt(user_prompt)
