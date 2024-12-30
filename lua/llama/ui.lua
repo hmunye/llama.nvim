@@ -363,7 +363,6 @@ end
 
 ---@param prompt string
 M.append_model_response = function(prompt)
-    state.prompt.is_processing = true
     M.start_spinner()
 
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
@@ -455,7 +454,6 @@ M.append_model_response = function(prompt)
             end
         end
 
-        state.prompt.is_processing = false
         M.stop_spinner()
     end)
 end
@@ -567,6 +565,8 @@ M.process_command = function(command)
     end
 end
 
+-- TODO: handle case were an additional prompt is submitted before the previous
+-- model response is fully in the buffer
 M.submit_prompt = function()
     local input = M.get_input()
 
