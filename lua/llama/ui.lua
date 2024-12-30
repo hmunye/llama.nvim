@@ -6,7 +6,7 @@ local M = {}
 local state = {
     -- current buffer with code
     current_buf = -1,
-    -- context window for model
+    -- context window for model (in tokens)
     ctx_win = -1,
     model = "",
     include_current_buffer = false,
