@@ -103,9 +103,9 @@ return {
                 -- (Default: 0)
                 seed = 0, 
 
-                -- (string[]) Defines one or more stop sequences that will halt the 
-                -- text generation when encountered.
-                stop = { "" }, 
+                -- (string[]|nil) Defines one or more stop sequences that will halt the 
+                -- text generation when encountered. (Default: nil)
+                stop = nil, 
 
                 -- (int) Defines the maximum number of tokens to generate in a response. 
                 -- Setting it to -1 means the generation is unlimited. A positive integer 

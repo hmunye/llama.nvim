@@ -60,7 +60,7 @@ local function get_default_config()
             repeat_penalty = 1.1,
             temperature = 0.8,
             seed = 0,
-            stop = { "" },
+            stop = nil,
             num_predict = -1,
             top_k = 40,
             top_p = 0.9,
