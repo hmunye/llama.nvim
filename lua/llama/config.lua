@@ -65,9 +65,9 @@ local function get_default_config()
             top_k = 40,
             top_p = 0.9,
             min_p = 0.0,
-            system_message = "",
-            stream = true,
         },
+        system_message = "",
+        stream = true,
         include_current_buffer = false,
         chat = {
             position = "right",
@@ -88,6 +88,7 @@ local function get_default_config()
                 mode = { "n" },
                 lhs = "<C-l>",
             },
+            -- scoped to prompt buffer
             LlamaSubmitPrompt = {
                 mode = { "n", "i" },
                 lhs = "<CR>",

@@ -48,7 +48,7 @@ local state = {
 local commands = {
     clear_chat = "/c",
     include_buffer = "/buf",
-    disclude_buffer = "/no_buf",
+    no_current_buffer = "/no_buf",
     list_models = "/l",
     switch_model = "/switch",
 }
