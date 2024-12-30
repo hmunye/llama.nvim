@@ -103,9 +103,9 @@ Llama.load = function(model)
 
         vim.notify(
             "ERROR: failed to find model in list of local available models: provided '"
-            .. model
-            .. "'\navailable models: "
-            .. table.concat(available_models, ", "),
+                .. model
+                .. "'\navailable models: "
+                .. table.concat(available_models, ", "),
             vim.log.levels.ERROR,
             {}
         )

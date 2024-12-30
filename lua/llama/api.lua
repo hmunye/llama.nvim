@@ -61,7 +61,6 @@ end
 ---@param prompt string -- user prompt
 ---@param callback function -- callback returns true and the next token/response or false and error message
 M.generate_chat_completion = function(model, prompt, callback)
-    print(model)
     if state.opts.system_message then
         local system_message = {
             role = "system",
