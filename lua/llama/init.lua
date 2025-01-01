@@ -1,8 +1,6 @@
 local Llama = {}
 
-local state = {
-    loaded = false,
-}
+local loaded = false
 
 --- initialize the user's config and set up the keymap/command for loading
 --- the plugin and toggling the chat window
@@ -21,7 +19,7 @@ Llama.setup = function(opts)
 
     -- delay loading of most modules by requiring them inline
     vim.api.nvim_create_user_command("LlamaChat", function()
-        if not state.loaded then
+        if not loaded then
             if not Llama.load(merged_opts.model) then
                 return
             end
@@ -30,7 +28,6 @@ Llama.setup = function(opts)
                 merged_opts.model,
                 merged_opts.chat,
                 merged_opts.prompt,
-                merged_opts.include_current_buffer,
                 merged_opts.keymaps,
                 merged_opts.model_options.num_ctx
             )
@@ -42,7 +39,7 @@ Llama.setup = function(opts)
                 merged_opts.model_options
             )
 
-            state.loaded = true
+            loaded = true
 
             return
         end
@@ -80,7 +77,7 @@ Llama.load = function(model)
     local status, model_data = require("llama.api").fetch_local_models()
 
     if not status then
-        -- should be a string since an error occurred, using tostring to hide warning
+        -- should be a string since an error occurred, using tostring to satisfy warning
         vim.notify(tostring(model_data), vim.log.levels.ERROR, {})
         return false
     end

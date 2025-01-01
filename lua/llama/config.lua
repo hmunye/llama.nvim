@@ -5,7 +5,6 @@ local M = {}
 --- @field model_options ModelOpts
 --- @field system_message string
 --- @field stream boolean
---- @field include_current_buffer boolean
 --- @field chat ChatOpts
 --- @field prompt PromptOpts
 --- @field keymaps KeymapOpts
@@ -68,7 +67,6 @@ local function get_default_config()
         },
         system_message = "",
         stream = true,
-        include_current_buffer = false,
         chat = {
             position = "right",
             width = 30.0,
@@ -102,7 +100,6 @@ end
 --- @field model_options ModelOpts?
 --- @field system_message string?
 --- @field stream boolean?
---- @field include_current_buffer boolean?
 --- @field chat ChatOpts?
 --- @field prompt PromptOpts?
 --- @field keymaps KeymapOpts?

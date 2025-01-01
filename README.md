@@ -136,9 +136,6 @@ return {
             -- (bool) Whether to stream the output as it is generated or wait until 
             -- the entire response is ready. (Default: true)
             stream = true,
-            -- (bool) Indicates whether to include the current buffer's content 
-            -- initially as context for the model. (Default: false)
-            include_current_buffer = false,
             chat = {
                 -- (string) Specifies the position of the chat interface. Options are 
                 -- "left" and "right". (Default: "right")

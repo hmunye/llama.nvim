@@ -20,7 +20,7 @@ end
 
 ---@param text string
 ---@param width number
----@return table
+---@return table -- lines split by the provided width for each line
 M.wrap_text = function(text, width)
     local lines = {}
     local current_line = ""

@@ -56,19 +56,16 @@ local commands = {
 --- @param model string -- initial model provided
 --- @param chat_opts ChatOpts -- initial chat window opts
 --- @param prompt_opts PromptOpts -- initial prompt window opts
---- @param include_current_buffer boolean
 --- @param keymaps KeymapOpts -- remaining keymaps that need to be buffer-scoped
 --- @param ctx_win integer -- context window for model
 M.init = function(
     model,
     chat_opts,
     prompt_opts,
-    include_current_buffer,
     keymaps,
     ctx_win
 )
     state.model = model
-    state.include_current_buffer = include_current_buffer
     state.chat.opts = chat_opts
     state.prompt.opts = prompt_opts
     state.keymaps = keymaps
@@ -159,7 +156,7 @@ M.stop_spinner = function()
 end
 
 --- get input value from prompt buffer
----@return string -- all lines in the buffer as a single string
+---@return string -- all lines in the buffer as a single string with newlines
 M.get_input = function()
     if not vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
         return ""
@@ -178,7 +175,7 @@ M.toggle_chat_window = function()
         return
     end
 
-    -- store the current buffer for future use
+    -- store the current buffer for future use in including
     state.current_buf = vim.api.nvim_win_get_buf(0)
 
     state.chat.width = math.floor(
@@ -380,6 +377,7 @@ M.append_model_response = function(prompt)
         )
     end
 
+    -- TODO: handle case where prompt is submitted while previous prompt is still generating
     API.generate_chat_completion(state.model, prompt, function(status, response)
         if not status then
             vim.notify(response, vim.log.levels.ERROR, { title = "llama.nvim" })
@@ -541,7 +539,7 @@ M.process_command = function(command)
 
         local model_choice = vim.fn.inputlist(available_models)
 
-        if model_choice and model_choice <= #available_models then
+        if model_choice and model_choice > 0 and model_choice <= #available_models then
             local model_name = string.sub(available_models[model_choice], 4)
 
             state.model = model_name
