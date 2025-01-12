@@ -58,13 +58,7 @@ local commands = {
 --- @param prompt_opts PromptOpts -- initial prompt window opts
 --- @param keymaps KeymapOpts -- remaining keymaps that need to be buffer-scoped
 --- @param ctx_win integer -- context window for model
-M.init = function(
-    model,
-    chat_opts,
-    prompt_opts,
-    keymaps,
-    ctx_win
-)
+M.init = function(model, chat_opts, prompt_opts, keymaps, ctx_win)
     state.model = model
     state.chat.opts = chat_opts
     state.prompt.opts = prompt_opts
@@ -539,7 +533,11 @@ M.process_command = function(command)
 
         local model_choice = vim.fn.inputlist(available_models)
 
-        if model_choice and model_choice > 0 and model_choice <= #available_models then
+        if
+            model_choice
+            and model_choice > 0
+            and model_choice <= #available_models
+        then
             local model_name = string.sub(available_models[model_choice], 4)
 
             state.model = model_name
