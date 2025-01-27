@@ -21,6 +21,7 @@ local state = {
         opts = {},
         bufnr = -1,
         winid = -1,
+        is_processing = false,
     },
     keymaps = {},
     -- https://github.com/jellydn/spinner.nvim
@@ -46,11 +47,12 @@ local state = {
 
 -- `commands` to enter in prompt
 local commands = {
-    clear_chat = "/c",
+    clear_chat = "/clear",
     include_buffer = "/buf",
     no_current_buffer = "/no_buf",
-    list_models = "/l",
+    list_models = "/ls",
     switch_model = "/switch",
+    help = "/help",
 }
 
 --- @param model string -- initial model provided
@@ -164,8 +166,8 @@ M.toggle_chat_window = function()
     if vim.api.nvim_win_is_valid(state.chat.winid) then
         vim.api.nvim_win_hide(state.chat.winid)
         vim.api.nvim_win_hide(state.prompt.winid)
-
         M.stop_spinner()
+
         return
     end
 
@@ -211,7 +213,7 @@ M.toggle_chat_window = function()
     })
 
     -- resume the spinner if chat window is previously closed and model is still processing
-    if not state.spinner.timer and state.prompt.is_processing then
+    if state.prompt.is_processing then
         M.start_spinner()
     end
 
@@ -355,6 +357,7 @@ end
 ---@param prompt string
 M.append_model_response = function(prompt)
     M.start_spinner()
+    state.prompt.is_processing = true
 
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
@@ -447,6 +450,7 @@ M.append_model_response = function(prompt)
         end
 
         M.stop_spinner()
+        state.prompt.is_processing = false
     end)
 end
 
@@ -488,7 +492,7 @@ end
 
 ---@param command string
 M.process_command = function(command)
-    if command == "/c" then
+    if command == "/clear" then
         M.clear_chat_window()
     elseif command == "/buf" then
         state.include_current_buffer = true
@@ -498,7 +502,7 @@ M.process_command = function(command)
         state.include_current_buffer = false
 
         M.append_command_message("[LLAMA] include current buffer: disabled")
-    elseif command == "/l" then
+    elseif command == "/ls" then
         local status, model_data = API.fetch_local_models()
 
         if not status then
@@ -558,6 +562,16 @@ M.process_command = function(command)
         else
             M.append_command_message("[LLAMA] model switch canceled")
         end
+    elseif command == "/help" then
+        local available_cmds = {}
+
+        for _, value in pairs(commands) do
+            table.insert(available_cmds, "`" .. value .. "`")
+        end
+
+        M.append_command_message(
+            "[LLAMA] prompt commands: " .. table.concat(available_cmds, ", ")
+        )
     end
 end
 
@@ -596,7 +610,7 @@ M.submit_prompt = function()
         --
         -- appx tokens in file = math.floor(file size in bytes * 0.286).
         if ok and stats and math.floor(stats.size * 0.286) > state.ctx_win then
-            print("approximate tokens: " .. math.floor(stats.size * 0.286))
+            -- print("approximate tokens: " .. math.floor(stats.size * 0.286))
 
             vim.notify(
                 "file larger than model's context window. current buffer was not included for performance",

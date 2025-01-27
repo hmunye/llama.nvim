@@ -17,7 +17,7 @@ Llama.setup = function(opts)
         { noremap = true, silent = true }
     )
 
-    -- delay loading of most modules by requiring them inline
+    -- delay loading most modules on start by requiring them inline
     vim.api.nvim_create_user_command("LlamaChat", function()
         if not loaded then
             if not Llama.load(merged_opts.model) then
@@ -40,11 +40,9 @@ Llama.setup = function(opts)
             )
 
             loaded = true
-
-            return
+        else
+            require("llama.ui").toggle_chat_window()
         end
-
-        require("llama.ui").toggle_chat_window()
     end, {})
 end
 
