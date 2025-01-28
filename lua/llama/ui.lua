@@ -374,84 +374,110 @@ M.append_model_response = function(prompt)
         )
     end
 
-    -- TODO: handle case where prompt is submitted while previous prompt is still generating
-    API.generate_chat_completion(state.model, prompt, function(status, response)
-        if not status then
-            vim.notify(response, vim.log.levels.ERROR, { title = "llama.nvim" })
-            return
-        end
+    local callback_count = 0
 
-        -- finished streaming response (should not affect non-streamed responses)
-        if response == "" then
-            return
-        end
-
-        -- handle newlines in response
-        if string.find(response, "\n") then
-            local response_lines = vim.split(response, "\n")
-
-            lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
-
-            -- if no lines exist in the buffer, add the response lines directly
-            if #lines == 0 then
-                Utils.set_buf_lines(
-                    state.chat.bufnr,
-                    0,
-                    0,
-                    false,
-                    response_lines
+    API.generate_chat_completion(
+        state.model,
+        prompt,
+        function(status, response, response_count)
+            if not status then
+                vim.notify(
+                    response,
+                    vim.log.levels.ERROR,
+                    { title = "llama.nvim" }
                 )
-            else
-                -- get the last line in the buffer and append the first part of the new response
-                local last_line = lines[#lines] or ""
-                local first_line = response_lines[1] or ""
-                local updated_line = last_line .. first_line
-
-                -- replace the last line with the updated line
-                Utils.set_buf_lines(
-                    state.chat.bufnr,
-                    #lines - 1,
-                    #lines,
-                    false,
-                    { updated_line }
+                vim.api.nvim_set_option_value(
+                    "modifiable",
+                    true,
+                    { buf = state.prompt.bufnr }
                 )
+                return
+            end
 
-                -- add the remaining response lines
-                if #response_lines > 1 then
-                    local remaining_lines =
-                        vim.list_slice(response_lines, 2, #response_lines)
+            -- handle newlines in response
+            if string.find(response, "\n") then
+                local response_lines = vim.split(response, "\n")
+
+                lines =
+                    vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+
+                -- if no lines exist in the buffer, add the response lines directly
+                if #lines == 0 then
                     Utils.set_buf_lines(
                         state.chat.bufnr,
-                        #lines,
+                        0,
+                        0,
+                        false,
+                        response_lines
+                    )
+                else
+                    -- get the last line in the buffer and append the first part of the new response
+                    local last_line = lines[#lines] or ""
+                    local first_line = response_lines[1] or ""
+                    local updated_line = last_line .. first_line
+
+                    -- replace the last line with the updated line
+                    Utils.set_buf_lines(
+                        state.chat.bufnr,
+                        #lines - 1,
                         #lines,
                         false,
-                        remaining_lines
+                        { updated_line }
+                    )
+
+                    -- add the remaining response lines
+                    if #response_lines > 1 then
+                        local remaining_lines =
+                            vim.list_slice(response_lines, 2, #response_lines)
+                        Utils.set_buf_lines(
+                            state.chat.bufnr,
+                            #lines,
+                            #lines,
+                            false,
+                            remaining_lines
+                        )
+                    end
+                end
+            else
+                -- no newlines present in response
+                lines =
+                    vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
+
+                if #lines == 0 then
+                    Utils.set_buf_lines(
+                        state.chat.bufnr,
+                        0,
+                        0,
+                        false,
+                        { response }
+                    )
+                else
+                    local last_line = lines[#lines] or ""
+                    local updated_line = last_line .. response
+
+                    Utils.set_buf_lines(
+                        state.chat.bufnr,
+                        #lines - 1,
+                        #lines,
+                        false,
+                        { updated_line }
                     )
                 end
             end
-        else
-            -- no newlines present in response
-            lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
-            if #lines == 0 then
-                Utils.set_buf_lines(state.chat.bufnr, 0, 0, false, { response })
-            else
-                local last_line = lines[#lines] or ""
-                local updated_line = last_line .. response
+            M.stop_spinner()
+            state.is_processing = false
 
-                Utils.set_buf_lines(
-                    state.chat.bufnr,
-                    #lines - 1,
-                    #lines,
-                    false,
-                    { updated_line }
+            callback_count = callback_count + 1
+            if callback_count == response_count - 2 then
+                vim.api.nvim_set_option_value(
+                    "modifiable",
+                    true,
+                    { buf = state.prompt.bufnr }
                 )
             end
         end
-
-        M.stop_spinner()
-        state.is_processing = false
-    end)
+    )
 end
 
 ---@param mes string -- command message to display
@@ -575,8 +601,6 @@ M.process_command = function(command)
     end
 end
 
--- TODO: handle case were an additional prompt is submitted before the previous
--- model response is fully in the buffer
 M.submit_prompt = function()
     local input = M.get_input()
 
@@ -613,26 +637,31 @@ M.submit_prompt = function()
             -- print("approximate tokens: " .. math.floor(stats.size * 0.286))
 
             vim.notify(
-                "file larger than model's context window. current buffer was not included for performance",
+                "file larger than configured context window. current buffer was not included",
                 vim.log.levels.WARN,
                 { title = "llama.nvim" }
             )
 
-            -- use original prompt
-            M.append_user_prompt(input)
-            M.append_model_response(input)
-
             if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
                 -- Clear the prompt after submitting
                 Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+                vim.api.nvim_set_option_value(
+                    "modifiable",
+                    false,
+                    { buf = state.prompt.bufnr }
+                )
             end
+
+            -- use original prompt
+            M.append_user_prompt(input)
+            M.append_model_response(input)
 
             return
         else
             -- save original prompt
             local user_prompt = input
 
-            input = input .. "\n[Context]: "
+            input = input .. "\n[CONTEXT]: "
 
             -- get lines from main buffer
             local lines =
@@ -644,29 +673,39 @@ M.submit_prompt = function()
 
             user_prompt = user_prompt .. "\n [BUFFER INCLUDED]"
 
+            if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
+                -- Clear the prompt after submitting
+                Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+                vim.api.nvim_set_option_value(
+                    "modifiable",
+                    false,
+                    { buf = state.prompt.bufnr }
+                )
+            end
+
             -- use original prompt with indicator for which buffer was included
             M.append_user_prompt(user_prompt)
 
             -- use modified prompt
             M.append_model_response(input)
 
-            if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
-                -- Clear the prompt after submitting
-                Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
-            end
-
             return
         end
+    end
+
+    if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
+        -- Clear the prompt after submitting
+        Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
+        vim.api.nvim_set_option_value(
+            "modifiable",
+            false,
+            { buf = state.prompt.bufnr }
+        )
     end
 
     -- use original prompt
     M.append_user_prompt(input)
     M.append_model_response(input)
-
-    if vim.api.nvim_buf_is_valid(state.prompt.bufnr) then
-        -- Clear the prompt after submitting
-        Utils.set_buf_lines(state.prompt.bufnr, 0, -1, false, {})
-    end
 end
 
 M.clear_chat_window = function()

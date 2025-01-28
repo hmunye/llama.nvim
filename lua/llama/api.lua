@@ -105,7 +105,8 @@ M.generate_chat_completion = function(model, prompt, callback)
 
                     callback(
                         false,
-                        "ERROR: failed to generate chat completion: " .. err_msg
+                        "ERROR: failed to generate chat completion: " .. err_msg,
+                        0
                     )
                     return
                 end
@@ -123,7 +124,8 @@ M.generate_chat_completion = function(model, prompt, callback)
                         callback(
                             false,
                             "ERROR: failed to decode JSON response for chat completion: "
-                                .. decoded_part
+                                .. decoded_part,
+                            0
                         )
                         break
                     end
@@ -138,7 +140,7 @@ M.generate_chat_completion = function(model, prompt, callback)
                         table.insert(state.messages, assistant_message)
 
                         -- end of stream
-                        callback(true, "")
+                        callback(true, "", 0)
                         break
                     end
 
@@ -147,7 +149,11 @@ M.generate_chat_completion = function(model, prompt, callback)
 
                     -- defers the callback incrementally based on the amount of responses
                     vim.defer_fn(function()
-                        callback(true, decoded_part.message.content)
+                        callback(
+                            true,
+                            decoded_part.message.content,
+                            #response_parts
+                        )
                     end, 40 * i)
                 end
             end)
@@ -177,7 +183,8 @@ M.generate_chat_completion = function(model, prompt, callback)
 
                     callback(
                         false,
-                        "ERROR: failed to generate chat completion: " .. err_msg
+                        "ERROR: failed to generate chat completion: " .. err_msg,
+                        0
                     )
                     return
                 end
@@ -190,7 +197,8 @@ M.generate_chat_completion = function(model, prompt, callback)
                     callback(
                         false,
                         "ERROR: failed to decode JSON response for chat completion: "
-                            .. decoded_response
+                            .. decoded_response,
+                        0
                     )
                     return
                 end
@@ -198,7 +206,7 @@ M.generate_chat_completion = function(model, prompt, callback)
                 -- update chat memory with full assistant message (role and content)
                 table.insert(state.messages, decoded_response.message)
 
-                callback(true, decoded_response.message.content)
+                callback(true, decoded_response.message.content, 0)
             end)
         end
 
