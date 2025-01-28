@@ -143,8 +143,8 @@ return {
                 -- (float) The width of the chat window as a percentage of current 
                 -- window width. (Default: 30.0)
                 width = 30.0,
-                -- (string) Title of the chat window. (Default: "Llama")
-                title = "Llama",
+                -- (string) Title of the chat window. (Default: "LLAMA")
+                title = "LLAMA",
                 -- (string) The position of the title. Options are "left", "center", 
                 -- and "right". (Default: "center")
                 title_position = "center",
@@ -175,14 +175,14 @@ return {
             keymaps = {
                 -- Keymap for toggling the chat
                 LlamaChat = {
-                    -- (table) Specifies the modes in which this keymap is active (e.g., "n", "v", "i", "t", etc.) (Default: { "n" })
+                    -- (table) Specifies the modes in which this keymap is active (e.g., "n", "v", "i", "t", etc.) (Default: Normal mode)
                     mode = { "n" },
-                    -- (string) The key combination that triggers the action. (Default: Ctrl + L)
+                    -- (string) The key combination that triggers the action. (Default: Ctrl + l)
                     lhs = "<C-l>",
                 },
                 -- Keymap for submitting a prompt (scoped to prompt buffer)
                 LlamaSubmitPrompt = {
-                    -- (table) (Default: { "n", "i" })
+                    -- (table) (Default: Normal and Insert modes )
                     mode = { "n", "i" },
                     -- (string) (Default: Enter/Return)
                     lhs = "<CR>",
@@ -205,7 +205,7 @@ then toggles the visibility of the chat window, otherwise just toggles the chat 
 #### `LlamaSubmitPrompt`
 - **Command**: `:LlamaSubmitPrompt`
 - **Action**: Submits the contents of the prompt buffer to the currently selected model. 
-If `commands` are provided, they will be processed independently. This command also uses
+If `commands` alone are provided, they will be processed independently. This command also uses
 the `include_current_buffer` option to include the contents of the current buffer, 
 if configured. The `LlamaSubmitPrompt` command and its associated keymap are scoped 
 specifically to the prompt buffer.
@@ -215,7 +215,7 @@ specifically to the prompt buffer.
 Within the prompt buffer, the following commands can be submitted:
 
   - **Command**: `/clear`  
-  **Action**: Clears the chat buffer
+  **Action**: Clears the chat buffer, but not the chat history
 
   - **Command**: `/buf`  
   **Action**: Sets the `include_current_buffer` option to true
@@ -223,11 +223,11 @@ Within the prompt buffer, the following commands can be submitted:
   - **Command**: `/no_buf`  
   **Action**: Sets the `include_current_buffer` option to false
 
-  - **Command**: `/ls`  
+  - **Command**: `/list`  
   **Action**: Lists the locally available models on the host system
 
   - **Command**: `/switch`  
-  **Action**: Provides a list of available to switch to, resetting the chat buffer and chat history
+  **Action**: Provides a list of available models to switch to. On selection, clears the chat buffer and chat history
 
   - **Command**: `/help`  
   **Action**: Provides a list of available prompt commands

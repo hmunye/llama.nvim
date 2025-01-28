@@ -50,7 +50,7 @@ local commands = {
     clear_chat = "/clear",
     include_buffer = "/buf",
     no_current_buffer = "/no_buf",
-    list_models = "/ls",
+    list_models = "/list",
     switch_model = "/switch",
     help = "/help",
 }
@@ -502,7 +502,7 @@ M.process_command = function(command)
         state.include_current_buffer = false
 
         M.append_command_message("[LLAMA] include current buffer: disabled")
-    elseif command == "/ls" then
+    elseif command == "/list" then
         local status, model_data = API.fetch_local_models()
 
         if not status then
