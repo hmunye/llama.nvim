@@ -21,9 +21,9 @@ local state = {
         opts = {},
         bufnr = -1,
         winid = -1,
-        is_processing = false,
     },
     keymaps = {},
+    is_processing = false,
     -- https://github.com/jellydn/spinner.nvim
     spinner = {
         index = 1,
@@ -213,7 +213,7 @@ M.toggle_chat_window = function()
     })
 
     -- resume the spinner if chat window is previously closed and model is still processing
-    if state.prompt.is_processing then
+    if state.is_processing then
         M.start_spinner()
     end
 
@@ -357,7 +357,7 @@ end
 ---@param prompt string
 M.append_model_response = function(prompt)
     M.start_spinner()
-    state.prompt.is_processing = true
+    state.is_processing = true
 
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
@@ -450,7 +450,7 @@ M.append_model_response = function(prompt)
         end
 
         M.stop_spinner()
-        state.prompt.is_processing = false
+        state.is_processing = false
     end)
 end
 

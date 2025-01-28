@@ -23,28 +23,38 @@ end
 ---@return table -- lines split by the provided width for each line
 M.wrap_text = function(text, width)
     local lines = {}
-    local current_line = ""
 
-    -- split the text by spaces to get individual words
-    for word in text:gmatch("%S+") do
-        -- check if adding the next word would exceed the width
-        if #current_line + #word + (current_line == "" and 0 or 1) > width then
-            -- push the current line and start a new one with the current word
-            table.insert(lines, current_line)
-            current_line = word
+    text = text:gsub("\t", "    ")
+    text = text:gsub("[\r\n]+", " ")
+    text = text:gsub("%s+", " ")
+
+    local start_pos = 1
+
+    while #text > 0 do
+        if #text <= width then
+            table.insert(lines, text)
+            break
         else
-            -- add the word to the current line
-            if current_line == "" then
-                current_line = word
-            else
-                current_line = current_line .. " " .. word
-            end
-        end
-    end
+            local split_pos = text:find(" ", start_pos + width - 1) or #text + 1
 
-    -- add remaining text
-    if #current_line > 0 then
-        table.insert(lines, current_line)
+            if split_pos > #text then
+                split_pos = #text
+            end
+
+            local line_end = (split_pos == #text and #text + 1) or split_pos
+            local line = text:sub(start_pos, line_end)
+
+            while #line > width do
+                line = line:sub(1, -2)
+                line_end = line_end - 1
+                line = text:sub(start_pos, line_end)
+            end
+
+            table.insert(lines, line)
+
+            start_pos = line_end + 1
+            text = text:sub(start_pos):gsub("^%s+", "")
+        end
     end
 
     return lines

@@ -1,9 +1,11 @@
 local M = {}
 
 local state = {
-    system_message = "",
-    stream = false,
-    model_options = {},
+    model = {
+        system_message = "",
+        stream = true,
+        model_options = {},
+    },
     messages = {},
 }
 
@@ -11,15 +13,15 @@ local state = {
 ---@param stream boolean
 ---@param model_options ModelOpts
 M.init = function(system_message, stream, model_options)
-    state.system_message = system_message
-    state.stream = stream
-    state.model_options = model_options
+    state.model.system_message = system_message
+    state.model.stream = stream
+    state.model.model_options = model_options
 end
 
 --- reset chat history messages and system message
 M.clear_chat_history = function()
     state.messages = {}
-    state.system_message = nil
+    state.model.system_message = nil
 end
 
 ---@return boolean -- true if the request was successful, false otherwise
@@ -60,16 +62,16 @@ end
 ---@param prompt string -- user prompt
 ---@param callback function -- callback returns true and the next token/response or false and error message
 M.generate_chat_completion = function(model, prompt, callback)
-    if state.system_message then
+    if state.model.system_message then
         local system_message = {
             role = "system",
-            content = state.system_message,
+            content = state.model.system_message,
         }
 
         -- update chat memory once with system message
         table.insert(state.messages, system_message)
 
-        state.system_message = nil
+        state.model.system_message = nil
     end
 
     local user_message = {
@@ -83,8 +85,8 @@ M.generate_chat_completion = function(model, prompt, callback)
     local request_body = vim.fn.json_encode({
         model = model,
         messages = state.messages,
-        options = state.model_options,
-        stream = state.stream,
+        options = state.model.model_options,
+        stream = state.model.stream,
     })
 
     local function streamed_response()
@@ -208,10 +210,10 @@ M.generate_chat_completion = function(model, prompt, callback)
         )
     end
 
-    if not state.stream then
-        non_streamed_response()
-    else
+    if state.model.stream then
         streamed_response()
+    else
+        non_streamed_response()
     end
 end
 

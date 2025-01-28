@@ -70,7 +70,7 @@ local function get_default_config()
         chat = {
             position = "right",
             width = 30.0,
-            title = "Llama",
+            title = "LLAMA",
             title_position = "center",
             border = "rounded",
             spinner_color = "#FFFFFF",

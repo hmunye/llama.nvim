@@ -1,4 +1,4 @@
-local Llama = {}
+local M = {}
 
 local loaded = false
 
@@ -6,7 +6,7 @@ local loaded = false
 --- the plugin and toggling the chat window
 ---
 ---@param opts LlamaOptsPartial -- user provided options
-Llama.setup = function(opts)
+M.setup = function(opts)
     -- user-provided opts may be partial, so they are merged with default config
     local merged_opts = require("llama.config").merge_config(opts)
 
@@ -20,7 +20,7 @@ Llama.setup = function(opts)
     -- delay loading most modules on start by requiring them inline
     vim.api.nvim_create_user_command("LlamaChat", function()
         if not loaded then
-            if not Llama.load(merged_opts.model) then
+            if not M.load(merged_opts.model) then
                 return
             end
 
@@ -51,7 +51,7 @@ end
 ---
 ---@param model string -- initial model provided
 ---@return boolean -- true if all checks pass, false otherwise
-Llama.load = function(model)
+M.load = function(model)
     if not model or model == "" then
         vim.notify(
             "ERROR: missing or invalid 'model' field in plugin setup configuration",
@@ -110,4 +110,4 @@ Llama.load = function(model)
     return true
 end
 
-return Llama
+return M
