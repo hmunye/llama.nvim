@@ -361,6 +361,9 @@ M.append_model_response = function(prompt)
 
     local lines = vim.api.nvim_buf_get_lines(state.chat.bufnr, 0, -1, false)
 
+    local winid = vim.fn.bufwinid(state.current_buf)
+    vim.api.nvim_set_current_win(winid)
+
     -- add padding between each response
     local padding_lines = 4
 
