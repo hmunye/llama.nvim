@@ -205,10 +205,8 @@ then toggles the visibility of the chat window, otherwise just toggles the chat 
 #### `LlamaSubmitPrompt`
 - **Command**: `:LlamaSubmitPrompt`
 - **Action**: Submits the contents of the prompt buffer to the currently selected model. 
-If `commands` alone are provided, they will be processed independently. This command also uses
-the `include_current_buffer` option to include the contents of the current buffer, 
-if configured. The `LlamaSubmitPrompt` command and its associated keymap are scoped 
-specifically to the prompt buffer.
+If only a `prompt command` is provided, it will be processed independently. The `LlamaSubmitPrompt` command and its associated keymap are scoped 
+specifically to the prompt buffer only.
 
 ### Prompt Commands
 
@@ -231,5 +229,3 @@ Within the prompt buffer, the following commands can be submitted:
 
   - **Command**: `/help`  
   **Action**: Provides a list of available prompt commands
-
-> Note: These commands should be entered just as regular prompts are
